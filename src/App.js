@@ -1,24 +1,71 @@
-import logo from './logo.svg';
-import './App.css';
+import "./App.css";
+import { Canvas, useFrame, useThree } from "react-three-fiber";
+import { Physics, useSphere, useBox, usePlane } from "@react-three/cannon";
+
+const Ball = ({ args = [1, 32, 32] }) => {
+  const { viewport } = useThree();
+  const [ref, api] = useSphere(() => ({ args: args[0], mass: 1 }));
+  usePlane(() => ({
+    position: [0, -viewport.height, 0],
+    rotation: [-Math.PI / 2, 0, 0],
+    onCollide: () => {
+      api.position.set(0, 0, 0);
+      api.velocity.set(0, 10, 0);
+    },
+  }));
+  return (
+    <mesh ref={ref}>
+      <sphereBufferGeometry args={args} />
+      <meshStandardMaterial color="hotpink" />
+    </mesh>
+  );
+};
+
+const Paddle = ({ args = [1, 1, 1] }) => {
+  const [ref, api] = useBox(() => ({ args }));
+  useFrame((state) => {
+    api.position.set(
+      (state.mouse.x * state.viewport.width) / 2,
+      -state.viewport.height / 2,
+      0
+    );
+    api.rotation.set(0, 0, (state.mouse.x * Math.PI) / 5);
+  });
+  return (
+    <mesh ref={ref}>
+      <boxBufferGeometry args={args} />
+      <meshStandardMaterial color="lightblue" />
+    </mesh>
+  );
+};
+
+function Enemy({ color, args = [2, 0.5, 1], ...props }) {
+  const [ref] = useBox(() => ({ args, ...props }));
+
+  return (
+    <mesh ref={ref}>
+      <boxBufferGeometry args={args} />
+      <meshStandardMaterial color={color} />
+    </mesh>
+  );
+}
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Canvas camera={{ position: [0, 5, 12], fov: 50 }}>
+      <ambientLight intensity={0.3} />
+      <pointLight position={[10, 10, 5]} />
+      <pointLight position={[-10, -10, -5]} />
+      <Physics
+        gravity={[0, -30, 0]}
+        defaultContactMaterial={{ restitution: 1.1 }}
+      >
+        <Ball args={[0.25, 32, 32]} />
+        <Paddle args={[2, 0.5, 1]} />
+        <Enemy color="orange" position={[1, 1, 0]} />
+        <Enemy color="hotpink" position={[-2, 3, 0]} />
+      </Physics>
+    </Canvas>
   );
 }
 
